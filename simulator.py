@@ -32,15 +32,16 @@ class BlockModel:
 
         self.B = B
 
-    def pop_sample(self, initial_distribution, N):
+    def pop_sample(self, initial_distribution, N, beta_a, beta_b):
 
-        Xrv = tfp.distributions.OneHotCategorical(probs = initial_distribution)
+        Correction = tfp.distributions.Beta(beta_a, beta_b)
+        Erv        = tfp.distributions.OneHotCategorical(probs = initial_distribution)
 
-        return Xrv.sample(N)
+        return Erv.sample(N), Correction.sample(initial_distribution.shape)
 
-    def sample(self, X):
+    def sample(self, E, Correction):
 
-        M = np.einsum("nj,kj->nk", np.einsum("nk,kj->nj", X, self.B), X)
+        M = np.einsum("nj,kj->nk", np.einsum("nk,kj->nj", np.einsum("ni,i->ni", E, Correction), self.B), np.einsum("ni,i->ni", E, Correction))
 
         A = tfp.distributions.Binomial(1, probs = np.triu(M, k = 1)).sample()
 
